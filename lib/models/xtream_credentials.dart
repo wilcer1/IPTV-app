@@ -29,4 +29,11 @@ class XtreamCredentials {
   String seriesEpisodeStreamUrl(int episodeId, String extension) {
     return '$host/series/$username/$password/$episodeId.$extension';
   }
+
+  Uri xmltvUri() {
+    return Uri.parse('$host/xmltv.php').replace(queryParameters: {
+      'username': username,
+      'password': password,
+    });
+  }
 }
