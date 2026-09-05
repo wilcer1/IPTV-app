@@ -79,6 +79,7 @@ class XtreamApiClient {
         epgChannelId: (epgChannelId == null || epgChannelId.isEmpty)
             ? null
             : epgChannelId,
+        isLive: true,
       );
     }).toList();
   }
