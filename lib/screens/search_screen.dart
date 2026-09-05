@@ -24,8 +24,9 @@ typedef _SearchData = (
 
 class SearchScreen extends StatefulWidget {
   final XtreamApiClient client;
+  final String? initialQuery;
 
-  const SearchScreen({super.key, required this.client});
+  const SearchScreen({super.key, required this.client, this.initialQuery});
 
   @override
   State<SearchScreen> createState() => _SearchScreenState();
@@ -33,12 +34,21 @@ class SearchScreen extends StatefulWidget {
 
 class _SearchScreenState extends State<SearchScreen> {
   late final Future<_SearchData> _dataFuture;
-  String _query = '';
+  late String _query;
+  late final TextEditingController _queryController;
 
   @override
   void initState() {
     super.initState();
+    _query = widget.initialQuery ?? '';
+    _queryController = TextEditingController(text: _query);
     _dataFuture = _loadData();
+  }
+
+  @override
+  void dispose() {
+    _queryController.dispose();
+    super.dispose();
   }
 
   Future<_SearchData> _loadData() async {
@@ -62,6 +72,7 @@ class _SearchScreenState extends State<SearchScreen> {
     return Scaffold(
       appBar: AppBar(
         title: TextField(
+          controller: _queryController,
           decoration: const InputDecoration(
             hintText: 'Search channels, movies, series, programs...',
             border: InputBorder.none,

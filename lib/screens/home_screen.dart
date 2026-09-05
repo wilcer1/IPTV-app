@@ -4,6 +4,7 @@ import '../services/xtream_api_client.dart';
 import 'account_screen.dart';
 import 'categories_screen.dart';
 import 'favorites_screen.dart';
+import 'football_screen.dart';
 import 'media_list_screen.dart';
 import 'search_screen.dart';
 import 'series_list_screen.dart';
@@ -25,6 +26,7 @@ class _HomeScreenState extends State<HomeScreen> {
     final client = widget.client;
 
     final tabs = [
+      FootballScreen(client: client),
       CategoriesScreen(
         title: 'Live TV',
         icon: Icons.live_tv,
@@ -82,7 +84,9 @@ class _HomeScreenState extends State<HomeScreen> {
       bottomNavigationBar: NavigationBar(
         selectedIndex: _index,
         onDestinationSelected: (value) => setState(() => _index = value),
+        labelBehavior: NavigationDestinationLabelBehavior.onlyShowSelected,
         destinations: const [
+          NavigationDestination(icon: Icon(Icons.sports_soccer), label: 'Football'),
           NavigationDestination(icon: Icon(Icons.live_tv), label: 'Live TV'),
           NavigationDestination(icon: Icon(Icons.movie), label: 'Movies'),
           NavigationDestination(icon: Icon(Icons.video_library), label: 'Series'),
