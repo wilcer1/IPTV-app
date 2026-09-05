@@ -49,6 +49,7 @@ class _SeriesListScreenState extends State<SeriesListScreen> {
           }
 
           return ListView.builder(
+            padding: const EdgeInsets.symmetric(vertical: 8),
             itemCount: series.length,
             itemBuilder: (context, index) =>
                 SeriesTile(client: widget.client, series: series[index]),

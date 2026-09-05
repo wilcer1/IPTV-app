@@ -27,6 +27,7 @@ class _HomeScreenState extends State<HomeScreen> {
     final tabs = [
       CategoriesScreen(
         title: 'Live TV',
+        icon: Icons.live_tv,
         fetchCategories: client.getLiveCategories,
         onCategoryTap: (context, category) {
           Navigator.of(context).push(
@@ -41,12 +42,14 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
       CategoriesScreen(
         title: 'Movies',
+        icon: Icons.movie,
         fetchCategories: client.getVodCategories,
         onCategoryTap: (context, category) {
           Navigator.of(context).push(
             MaterialPageRoute(
               builder: (_) => MediaListScreen(
                 title: category.name,
+                gridView: true,
                 fetchItems: () => client.getVodStreams(category.id),
               ),
             ),
@@ -55,6 +58,7 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
       CategoriesScreen(
         title: 'Series',
+        icon: Icons.video_library,
         fetchCategories: client.getSeriesCategories,
         onCategoryTap: (context, category) {
           Navigator.of(context).push(

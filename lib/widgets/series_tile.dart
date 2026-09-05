@@ -12,24 +12,45 @@ class SeriesTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ListTile(
-      leading: series.coverUrl != null
-          ? Image.network(
-              series.coverUrl!,
-              width: 40,
-              height: 40,
-              errorBuilder: (_, _, _) => const Icon(Icons.movie),
-            )
-          : const Icon(Icons.movie),
-      title: Text(series.name),
-      trailing: const Icon(Icons.chevron_right),
-      onTap: () {
-        Navigator.of(context).push(
-          MaterialPageRoute(
-            builder: (_) => SeriesDetailScreen(client: client, series: series),
+    return Card(
+      margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+      child: ListTile(
+        leading: ClipRRect(
+          borderRadius: BorderRadius.circular(8),
+          child: SizedBox(
+            width: 44,
+            height: 44,
+            child: series.coverUrl != null
+                ? Image.network(
+                    series.coverUrl!,
+                    fit: BoxFit.cover,
+                    errorBuilder: (_, _, _) => const _CoverFallback(),
+                  )
+                : const _CoverFallback(),
           ),
-        );
-      },
+        ),
+        title: Text(series.name),
+        trailing: const Icon(Icons.chevron_right),
+        onTap: () {
+          Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (_) => SeriesDetailScreen(client: client, series: series),
+            ),
+          );
+        },
+      ),
+    );
+  }
+}
+
+class _CoverFallback extends StatelessWidget {
+  const _CoverFallback();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      color: Theme.of(context).colorScheme.surfaceContainerHighest,
+      child: Icon(Icons.movie, color: Theme.of(context).colorScheme.onSurfaceVariant),
     );
   }
 }

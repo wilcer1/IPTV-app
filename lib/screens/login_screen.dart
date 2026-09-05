@@ -88,66 +88,87 @@ class _LoginScreenState extends State<LoginScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+
     return Scaffold(
-      appBar: AppBar(title: const Text('IPTV')),
       body: Center(
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 420),
-          child: Padding(
-            padding: const EdgeInsets.all(24),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                const Text('Sign in with your Xtream Codes account'),
-                const SizedBox(height: 16),
-                TextField(
-                  controller: _hostController,
-                  decoration: const InputDecoration(
-                    border: OutlineInputBorder(),
-                    labelText: 'Host',
-                    hintText: 'http://example.com:8080',
+        child: SingleChildScrollView(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 420),
+            child: Padding(
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Icon(Icons.live_tv_rounded, size: 64, color: colorScheme.primary),
+                  const SizedBox(height: 12),
+                  Text(
+                    'Welcome back',
+                    textAlign: TextAlign.center,
+                    style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                          fontWeight: FontWeight.bold,
+                        ),
                   ),
-                  keyboardType: TextInputType.url,
-                ),
-                const SizedBox(height: 12),
-                TextField(
-                  controller: _usernameController,
-                  decoration: const InputDecoration(
-                    border: OutlineInputBorder(),
-                    labelText: 'Username',
+                  const SizedBox(height: 4),
+                  Text(
+                    'Sign in with your Xtream Codes account',
+                    textAlign: TextAlign.center,
+                    style: Theme.of(context)
+                        .textTheme
+                        .bodyMedium
+                        ?.copyWith(color: colorScheme.onSurfaceVariant),
                   ),
-                ),
-                const SizedBox(height: 12),
-                TextField(
-                  controller: _passwordController,
-                  decoration: const InputDecoration(
-                    border: OutlineInputBorder(),
-                    labelText: 'Password',
+                  const SizedBox(height: 28),
+                  TextField(
+                    controller: _hostController,
+                    decoration: const InputDecoration(
+                      labelText: 'Host',
+                      hintText: 'http://example.com:8080',
+                      prefixIcon: Icon(Icons.dns_outlined),
+                    ),
+                    keyboardType: TextInputType.url,
                   ),
-                  obscureText: true,
-                  onSubmitted: (_) => _connect(),
-                ),
-                const SizedBox(height: 16),
-                if (_error != null)
-                  Padding(
-                    padding: const EdgeInsets.only(bottom: 16),
-                    child: Text(
-                      _error!,
-                      style: TextStyle(color: Theme.of(context).colorScheme.error),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: _usernameController,
+                    decoration: const InputDecoration(
+                      labelText: 'Username',
+                      prefixIcon: Icon(Icons.person_outline),
                     ),
                   ),
-                FilledButton(
-                  onPressed: _loading ? null : _connect,
-                  child: _loading
-                      ? const SizedBox(
-                          width: 20,
-                          height: 20,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
-                      : const Text('Connect'),
-                ),
-              ],
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: _passwordController,
+                    decoration: const InputDecoration(
+                      labelText: 'Password',
+                      prefixIcon: Icon(Icons.lock_outline),
+                    ),
+                    obscureText: true,
+                    onSubmitted: (_) => _connect(),
+                  ),
+                  const SizedBox(height: 20),
+                  if (_error != null)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 16),
+                      child: Text(
+                        _error!,
+                        textAlign: TextAlign.center,
+                        style: TextStyle(color: colorScheme.error),
+                      ),
+                    ),
+                  FilledButton(
+                    onPressed: _loading ? null : _connect,
+                    child: _loading
+                        ? const SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : const Text('Connect'),
+                  ),
+                ],
+              ),
             ),
           ),
         ),

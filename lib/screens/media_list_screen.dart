@@ -1,16 +1,19 @@
 import 'package:flutter/material.dart';
 
 import '../models/media_item.dart';
+import '../widgets/media_poster_card.dart';
 import '../widgets/media_tile.dart';
 
 class MediaListScreen extends StatefulWidget {
   final String title;
   final Future<List<MediaItem>> Function() fetchItems;
+  final bool gridView;
 
   const MediaListScreen({
     super.key,
     required this.title,
     required this.fetchItems,
+    this.gridView = false,
   });
 
   @override
@@ -45,7 +48,22 @@ class _MediaListScreenState extends State<MediaListScreen> {
             return const Center(child: Text('Nothing found in this category.'));
           }
 
+          if (widget.gridView) {
+            return GridView.builder(
+              padding: const EdgeInsets.all(12),
+              gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+                maxCrossAxisExtent: 160,
+                mainAxisSpacing: 12,
+                crossAxisSpacing: 12,
+                childAspectRatio: 0.62,
+              ),
+              itemCount: items.length,
+              itemBuilder: (context, index) => MediaPosterCard(item: items[index]),
+            );
+          }
+
           return ListView.builder(
+            padding: const EdgeInsets.symmetric(vertical: 8),
             itemCount: items.length,
             itemBuilder: (context, index) => MediaTile(item: items[index]),
           );

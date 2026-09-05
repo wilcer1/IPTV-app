@@ -58,7 +58,20 @@ class _PlayerScreenState extends State<PlayerScreen> {
         ],
       ),
       body: Center(
-        child: Video(controller: _controller),
+        child: Stack(
+          alignment: Alignment.center,
+          children: [
+            Video(controller: _controller),
+            StreamBuilder<bool>(
+              stream: _player.stream.buffering,
+              initialData: true,
+              builder: (context, snapshot) {
+                if (snapshot.data != true) return const SizedBox.shrink();
+                return const CircularProgressIndicator(color: Colors.white);
+              },
+            ),
+          ],
+        ),
       ),
     );
   }

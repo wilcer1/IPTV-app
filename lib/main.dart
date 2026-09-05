@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:media_kit/media_kit.dart';
 
 import 'screens/splash_screen.dart';
+import 'services/theme_controller.dart';
+import 'theme.dart';
 
 void main() {
   MediaKit.ensureInitialized();
@@ -13,13 +15,17 @@ class IptvApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'IPTV',
-      theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
-        useMaterial3: true,
-      ),
-      home: const SplashScreen(),
+    return ListenableBuilder(
+      listenable: ThemeController.instance,
+      builder: (context, _) {
+        return MaterialApp(
+          title: 'IPTV',
+          theme: buildAppTheme(Brightness.light),
+          darkTheme: buildAppTheme(Brightness.dark),
+          themeMode: ThemeController.instance.mode,
+          home: const SplashScreen(),
+        );
+      },
     );
   }
 }

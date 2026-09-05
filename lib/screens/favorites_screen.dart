@@ -15,11 +15,29 @@ class FavoritesScreen extends StatelessWidget {
         builder: (context, _) {
           final favorites = FavoritesStore.instance.all;
           if (favorites.isEmpty) {
-            return const Center(
-              child: Text('No favorites yet. Tap the star on any channel to add it.'),
+            return Center(
+              child: Padding(
+                padding: const EdgeInsets.all(24),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      Icons.star_border,
+                      size: 48,
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    ),
+                    const SizedBox(height: 12),
+                    const Text(
+                      'No favorites yet. Tap the star on any channel to add it.',
+                      textAlign: TextAlign.center,
+                    ),
+                  ],
+                ),
+              ),
             );
           }
           return ListView.builder(
+            padding: const EdgeInsets.symmetric(vertical: 8),
             itemCount: favorites.length,
             itemBuilder: (context, index) => MediaTile(item: favorites[index]),
           );
