@@ -22,4 +22,11 @@ class CredentialsStore {
     if (host == null || username == null || password == null) return null;
     return XtreamCredentials(host: host, username: username, password: password);
   }
+
+  Future<void> clear() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove(_hostKey);
+    await prefs.remove(_usernameKey);
+    await prefs.remove(_passwordKey);
+  }
 }

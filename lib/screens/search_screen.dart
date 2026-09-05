@@ -2,8 +2,10 @@ import 'package:flutter/material.dart';
 
 import '../models/epg_program.dart';
 import '../models/media_item.dart';
+import '../models/series_summary.dart';
 import '../services/xtream_api_client.dart';
 import '../widgets/media_tile.dart';
+import '../widgets/series_tile.dart';
 import 'player_screen.dart';
 
 class _ProgramMatch {
@@ -12,6 +14,13 @@ class _ProgramMatch {
 
   const _ProgramMatch({required this.program, required this.channel});
 }
+
+typedef _SearchData = (
+  List<MediaItem> channels,
+  List<MediaItem> movies,
+  List<SeriesSummary> series,
+  List<EpgProgram> programs,
+);
 
 class SearchScreen extends StatefulWidget {
   final XtreamApiClient client;
@@ -23,7 +32,7 @@ class SearchScreen extends StatefulWidget {
 }
 
 class _SearchScreenState extends State<SearchScreen> {
-  late final Future<(List<MediaItem>, List<EpgProgram>)> _dataFuture;
+  late final Future<_SearchData> _dataFuture;
   String _query = '';
 
   @override
@@ -32,17 +41,20 @@ class _SearchScreenState extends State<SearchScreen> {
     _dataFuture = _loadData();
   }
 
-  Future<(List<MediaItem>, List<EpgProgram>)> _loadData() async {
+  Future<_SearchData> _loadData() async {
     final channels = await widget.client.getLiveStreams();
+    final movies = await widget.client.getVodStreams();
+    final series = await widget.client.getSeries();
+
     List<EpgProgram> programs;
     try {
       programs = await widget.client.getFullEpg();
     } catch (_) {
-      // EPG is a bonus feature; fall back to channel-name-only search if it's
+      // EPG is a bonus feature; fall back to name-only search if it's
       // unavailable or too slow/unsupported on this provider.
       programs = const [];
     }
-    return (channels, programs);
+    return (channels, movies, series, programs);
   }
 
   @override
@@ -51,7 +63,7 @@ class _SearchScreenState extends State<SearchScreen> {
       appBar: AppBar(
         title: TextField(
           decoration: const InputDecoration(
-            hintText: 'Search channels or programs...',
+            hintText: 'Search channels, movies, series, programs...',
             border: InputBorder.none,
           ),
           style: Theme.of(context).appBarTheme.titleTextStyle ??
@@ -59,7 +71,7 @@ class _SearchScreenState extends State<SearchScreen> {
           onChanged: (value) => setState(() => _query = value),
         ),
       ),
-      body: FutureBuilder<(List<MediaItem>, List<EpgProgram>)>(
+      body: FutureBuilder<_SearchData>(
         future: _dataFuture,
         builder: (context, snapshot) {
           if (snapshot.connectionState != ConnectionState.done) {
@@ -72,14 +84,18 @@ class _SearchScreenState extends State<SearchScreen> {
           final query = _query.trim().toLowerCase();
           if (query.isEmpty) {
             return const Center(
-              child: Text('Start typing to search channels or programs.'),
+              child: Text('Start typing to search channels, movies, series, or programs.'),
             );
           }
 
-          final (channels, programs) = snapshot.data!;
+          final (channels, movies, series, programs) = snapshot.data!;
 
           final channelMatches =
               channels.where((c) => c.name.toLowerCase().contains(query)).toList();
+          final movieMatches =
+              movies.where((m) => m.name.toLowerCase().contains(query)).toList();
+          final seriesMatches =
+              series.where((s) => s.name.toLowerCase().contains(query)).toList();
 
           final channelsByEpgId = <String, MediaItem>{
             for (final c in channels)
@@ -95,33 +111,47 @@ class _SearchScreenState extends State<SearchScreen> {
               .toList()
             ..sort((a, b) => a.program.start.compareTo(b.program.start));
 
-          if (channelMatches.isEmpty && programMatches.isEmpty) {
-            return const Center(child: Text('No matching channels or programs.'));
+          final hasResults = channelMatches.isNotEmpty ||
+              movieMatches.isNotEmpty ||
+              seriesMatches.isNotEmpty ||
+              programMatches.isNotEmpty;
+          if (!hasResults) {
+            return const Center(child: Text('No matching results.'));
           }
 
           return ListView(
             children: [
-              for (final channel in channelMatches) MediaTile(item: channel),
-              if (programMatches.isNotEmpty)
-                const Padding(
-                  padding: EdgeInsets.fromLTRB(16, 16, 16, 8),
-                  child: Text('Programs', style: TextStyle(fontWeight: FontWeight.bold)),
-                ),
-              for (final match in programMatches)
-                ListTile(
-                  leading: const Icon(Icons.live_tv),
-                  title: Text(match.program.title),
-                  subtitle: Text(
-                    '${match.channel.name} · ${_formatTime(match.program.start)}',
+              if (channelMatches.isNotEmpty) ...[
+                _SectionHeader('Live TV'),
+                for (final channel in channelMatches) MediaTile(item: channel),
+              ],
+              if (movieMatches.isNotEmpty) ...[
+                _SectionHeader('Movies'),
+                for (final movie in movieMatches) MediaTile(item: movie),
+              ],
+              if (seriesMatches.isNotEmpty) ...[
+                _SectionHeader('Series'),
+                for (final s in seriesMatches)
+                  SeriesTile(client: widget.client, series: s),
+              ],
+              if (programMatches.isNotEmpty) ...[
+                _SectionHeader('Programs'),
+                for (final match in programMatches)
+                  ListTile(
+                    leading: const Icon(Icons.live_tv),
+                    title: Text(match.program.title),
+                    subtitle: Text(
+                      '${match.channel.name} · ${_formatTime(match.program.start)}',
+                    ),
+                    onTap: () {
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (_) => PlayerScreen(item: match.channel),
+                        ),
+                      );
+                    },
                   ),
-                  onTap: () {
-                    Navigator.of(context).push(
-                      MaterialPageRoute(
-                        builder: (_) => PlayerScreen(item: match.channel),
-                      ),
-                    );
-                  },
-                ),
+              ],
             ],
           );
         },
@@ -134,5 +164,19 @@ class _SearchScreenState extends State<SearchScreen> {
     final hour = local.hour.toString().padLeft(2, '0');
     final minute = local.minute.toString().padLeft(2, '0');
     return '${local.day}/${local.month} $hour:$minute';
+  }
+}
+
+class _SectionHeader extends StatelessWidget {
+  final String title;
+
+  const _SectionHeader(this.title);
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+      child: Text(title, style: const TextStyle(fontWeight: FontWeight.bold)),
+    );
   }
 }

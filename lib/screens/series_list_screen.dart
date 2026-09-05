@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../models/series_summary.dart';
 import '../services/xtream_api_client.dart';
-import 'series_detail_screen.dart';
+import '../widgets/series_tile.dart';
 
 class SeriesListScreen extends StatefulWidget {
   final String title;
@@ -50,31 +50,8 @@ class _SeriesListScreenState extends State<SeriesListScreen> {
 
           return ListView.builder(
             itemCount: series.length,
-            itemBuilder: (context, index) {
-              final item = series[index];
-              return ListTile(
-                leading: item.coverUrl != null
-                    ? Image.network(
-                        item.coverUrl!,
-                        width: 40,
-                        height: 40,
-                        errorBuilder: (_, _, _) => const Icon(Icons.movie),
-                      )
-                    : const Icon(Icons.movie),
-                title: Text(item.name),
-                trailing: const Icon(Icons.chevron_right),
-                onTap: () {
-                  Navigator.of(context).push(
-                    MaterialPageRoute(
-                      builder: (_) => SeriesDetailScreen(
-                        client: widget.client,
-                        series: item,
-                      ),
-                    ),
-                  );
-                },
-              );
-            },
+            itemBuilder: (context, index) =>
+                SeriesTile(client: widget.client, series: series[index]),
           );
         },
       ),

@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:xml/xml.dart';
 
+import '../models/account_info.dart';
 import '../models/category.dart';
 import '../models/epg_program.dart';
 import '../models/media_item.dart';
@@ -33,7 +34,7 @@ class XtreamApiClient {
     return jsonDecode(response.body);
   }
 
-  Future<void> authenticate() async {
+  Future<Map<String, dynamic>> _fetchUserInfo() async {
     final response = await http.get(credentials.playerApiUri());
     if (response.statusCode != 200) {
       throw XtreamApiException('Server returned HTTP ${response.statusCode}');
@@ -44,6 +45,15 @@ class XtreamApiClient {
     if (userInfo is! Map<String, dynamic> || userInfo['auth'] != 1) {
       throw XtreamApiException('Invalid host, username, or password');
     }
+    return userInfo;
+  }
+
+  Future<void> authenticate() async {
+    await _fetchUserInfo();
+  }
+
+  Future<AccountInfo> getAccountInfo() async {
+    return AccountInfo.fromJson(await _fetchUserInfo());
   }
 
   Future<List<Category>> getLiveCategories() async {

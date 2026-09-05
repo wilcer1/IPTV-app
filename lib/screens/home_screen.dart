@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../services/xtream_api_client.dart';
+import 'account_screen.dart';
 import 'categories_screen.dart';
 import 'favorites_screen.dart';
 import 'media_list_screen.dart';
@@ -69,6 +70,7 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
       SearchScreen(client: client),
       const FavoritesScreen(),
+      AccountScreen(client: client),
     ];
 
     return Scaffold(
@@ -82,6 +84,7 @@ class _HomeScreenState extends State<HomeScreen> {
           NavigationDestination(icon: Icon(Icons.video_library), label: 'Series'),
           NavigationDestination(icon: Icon(Icons.search), label: 'Search'),
           NavigationDestination(icon: Icon(Icons.star), label: 'Favorites'),
+          NavigationDestination(icon: Icon(Icons.account_circle), label: 'Account'),
         ],
       ),
     );
