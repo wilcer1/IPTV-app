@@ -2,8 +2,10 @@ import 'dart:convert';
 
 import 'package:http/http.dart' as http;
 
-import '../models/channel.dart';
-import '../models/live_category.dart';
+import '../models/category.dart';
+import '../models/media_item.dart';
+import '../models/series_details.dart';
+import '../models/series_summary.dart';
 import '../models/xtream_credentials.dart';
 
 class XtreamApiException implements Exception {
@@ -19,6 +21,16 @@ class XtreamApiClient {
 
   const XtreamApiClient(this.credentials);
 
+  Future<dynamic> _getJson(String action, [Map<String, String>? extraParams]) async {
+    final response = await http.get(
+      credentials.playerApiUri(action: action, extraParams: extraParams),
+    );
+    if (response.statusCode != 200) {
+      throw XtreamApiException('Request failed (HTTP ${response.statusCode})');
+    }
+    return jsonDecode(response.body);
+  }
+
   Future<void> authenticate() async {
     final response = await http.get(credentials.playerApiUri());
     if (response.statusCode != 200) {
@@ -32,43 +44,95 @@ class XtreamApiClient {
     }
   }
 
-  Future<List<LiveCategory>> getLiveCategories() async {
-    final response = await http.get(
-      credentials.playerApiUri(action: 'get_live_categories'),
-    );
-    if (response.statusCode != 200) {
-      throw XtreamApiException(
-          'Failed to load categories (HTTP ${response.statusCode})');
-    }
-
-    final data = jsonDecode(response.body) as List<dynamic>;
-    return data
-        .map((e) => LiveCategory.fromJson(e as Map<String, dynamic>))
-        .toList();
+  Future<List<Category>> getLiveCategories() async {
+    final data = await _getJson('get_live_categories') as List<dynamic>;
+    return data.map((e) => Category.fromJson(e as Map<String, dynamic>)).toList();
   }
 
-  Future<List<Channel>> getLiveStreams([String? categoryId]) async {
-    final response = await http.get(
-      credentials.playerApiUri(
-        action: 'get_live_streams',
-        extraParams: categoryId == null ? null : {'category_id': categoryId},
-      ),
-    );
-    if (response.statusCode != 200) {
-      throw XtreamApiException(
-          'Failed to load channels (HTTP ${response.statusCode})');
-    }
+  Future<List<MediaItem>> getLiveStreams([String? categoryId]) async {
+    final data = await _getJson(
+      'get_live_streams',
+      categoryId == null ? null : {'category_id': categoryId},
+    ) as List<dynamic>;
 
-    final data = jsonDecode(response.body) as List<dynamic>;
     return data.map((e) {
       final json = e as Map<String, dynamic>;
       final streamId = int.parse(json['stream_id'].toString());
       final icon = json['stream_icon'] as String?;
-      return Channel(
+      return MediaItem(
         name: json['name'] as String? ?? 'Unknown channel',
         streamUrl: credentials.liveStreamUrl(streamId),
         logoUrl: (icon == null || icon.isEmpty) ? null : icon,
       );
     }).toList();
+  }
+
+  Future<List<Category>> getVodCategories() async {
+    final data = await _getJson('get_vod_categories') as List<dynamic>;
+    return data.map((e) => Category.fromJson(e as Map<String, dynamic>)).toList();
+  }
+
+  Future<List<MediaItem>> getVodStreams([String? categoryId]) async {
+    final data = await _getJson(
+      'get_vod_streams',
+      categoryId == null ? null : {'category_id': categoryId},
+    ) as List<dynamic>;
+
+    return data.map((e) {
+      final json = e as Map<String, dynamic>;
+      final streamId = int.parse(json['stream_id'].toString());
+      final extension = json['container_extension'] as String? ?? 'mp4';
+      final icon = json['stream_icon'] as String?;
+      return MediaItem(
+        name: json['name'] as String? ?? 'Unknown movie',
+        streamUrl: credentials.vodStreamUrl(streamId, extension),
+        logoUrl: (icon == null || icon.isEmpty) ? null : icon,
+      );
+    }).toList();
+  }
+
+  Future<List<Category>> getSeriesCategories() async {
+    final data = await _getJson('get_series_categories') as List<dynamic>;
+    return data.map((e) => Category.fromJson(e as Map<String, dynamic>)).toList();
+  }
+
+  Future<List<SeriesSummary>> getSeries([String? categoryId]) async {
+    final data = await _getJson(
+      'get_series',
+      categoryId == null ? null : {'category_id': categoryId},
+    ) as List<dynamic>;
+
+    return data
+        .map((e) => SeriesSummary.fromJson(e as Map<String, dynamic>))
+        .toList();
+  }
+
+  Future<SeriesDetails> getSeriesInfo(String seriesId) async {
+    final data = await _getJson('get_series_info', {'series_id': seriesId})
+        as Map<String, dynamic>;
+
+    final info = data['info'] as Map<String, dynamic>? ?? {};
+    final episodesBySeason = data['episodes'] as Map<String, dynamic>? ?? {};
+
+    final seasons = episodesBySeason.entries.map((entry) {
+      final episodes = (entry.value as List<dynamic>).map((e) {
+        final json = e as Map<String, dynamic>;
+        final episodeId = int.parse(json['id'].toString());
+        final extension =
+            json['container_extension'] as String? ?? 'mp4';
+        return MediaItem(
+          name: json['title'] as String? ?? 'Episode',
+          streamUrl: credentials.seriesEpisodeStreamUrl(episodeId, extension),
+        );
+      }).toList();
+      return SeriesSeason(seasonNumber: entry.key, episodes: episodes);
+    }).toList();
+
+    return SeriesDetails(
+      name: info['name'] as String? ?? 'Unknown series',
+      coverUrl: info['cover'] as String?,
+      plot: info['plot'] as String?,
+      seasons: seasons,
+    );
   }
 }

@@ -21,4 +21,12 @@ class XtreamCredentials {
   String liveStreamUrl(int streamId, {String extension = 'm3u8'}) {
     return '$host/live/$username/$password/$streamId.$extension';
   }
+
+  String vodStreamUrl(int streamId, String extension) {
+    return '$host/movie/$username/$password/$streamId.$extension';
+  }
+
+  String seriesEpisodeStreamUrl(int episodeId, String extension) {
+    return '$host/series/$username/$password/$episodeId.$extension';
+  }
 }

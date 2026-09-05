@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import '../models/xtream_credentials.dart';
 import '../services/credentials_store.dart';
 import '../services/xtream_api_client.dart';
-import 'category_list_screen.dart';
+import 'home_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -77,7 +77,7 @@ class _LoginScreenState extends State<LoginScreen> {
       await _credentialsStore.save(credentials);
       if (!mounted) return;
       Navigator.of(context).push(
-        MaterialPageRoute(builder: (_) => CategoryListScreen(client: client)),
+        MaterialPageRoute(builder: (_) => HomeScreen(client: client)),
       );
     } catch (e) {
       setState(() => _error = e.toString());

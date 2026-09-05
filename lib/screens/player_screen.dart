@@ -2,12 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:media_kit/media_kit.dart';
 import 'package:media_kit_video/media_kit_video.dart';
 
-import '../models/channel.dart';
+import '../models/media_item.dart';
+import '../services/favorites_store.dart';
 
 class PlayerScreen extends StatefulWidget {
-  final Channel channel;
+  final MediaItem item;
 
-  const PlayerScreen({super.key, required this.channel});
+  const PlayerScreen({super.key, required this.item});
 
   @override
   State<PlayerScreen> createState() => _PlayerScreenState();
@@ -22,7 +23,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
     super.initState();
     _player = Player();
     _controller = VideoController(_player);
-    _player.open(Media(widget.channel.streamUrl));
+    _player.open(Media(widget.item.streamUrl));
   }
 
   @override
@@ -36,9 +37,25 @@ class _PlayerScreenState extends State<PlayerScreen> {
     return Scaffold(
       backgroundColor: Colors.black,
       appBar: AppBar(
-        title: Text(widget.channel.name),
+        title: Text(widget.item.name),
         backgroundColor: Colors.black,
         foregroundColor: Colors.white,
+        actions: [
+          ListenableBuilder(
+            listenable: FavoritesStore.instance,
+            builder: (context, _) {
+              final isFavorite =
+                  FavoritesStore.instance.isFavorite(widget.item.streamUrl);
+              return IconButton(
+                icon: Icon(
+                  isFavorite ? Icons.star : Icons.star_border,
+                  color: isFavorite ? Colors.amber : Colors.white,
+                ),
+                onPressed: () => FavoritesStore.instance.toggle(widget.item),
+              );
+            },
+          ),
+        ],
       ),
       body: Center(
         child: Video(controller: _controller),

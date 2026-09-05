@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 
 import '../services/credentials_store.dart';
+import '../services/favorites_store.dart';
 import '../services/xtream_api_client.dart';
-import 'category_list_screen.dart';
+import 'home_screen.dart';
 import 'login_screen.dart';
 
 class SplashScreen extends StatefulWidget {
@@ -20,7 +21,10 @@ class _SplashScreenState extends State<SplashScreen> {
   }
 
   Future<void> _tryAutoLogin() async {
-    final credentials = await CredentialsStore().load();
+    final credentialsFuture = CredentialsStore().load();
+    final favoritesFuture = FavoritesStore.instance.ensureLoaded();
+    final credentials = await credentialsFuture;
+    await favoritesFuture;
     if (!mounted) return;
 
     if (credentials == null) {
@@ -35,7 +39,7 @@ class _SplashScreenState extends State<SplashScreen> {
       await client.authenticate();
       if (!mounted) return;
       Navigator.of(context).pushReplacement(
-        MaterialPageRoute(builder: (_) => CategoryListScreen(client: client)),
+        MaterialPageRoute(builder: (_) => HomeScreen(client: client)),
       );
     } catch (_) {
       if (!mounted) return;

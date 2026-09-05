@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 
-import '../models/channel.dart';
+import '../models/media_item.dart';
 import '../services/xtream_api_client.dart';
-import 'player_screen.dart';
+import '../widgets/media_tile.dart';
 
 class SearchScreen extends StatefulWidget {
   final XtreamApiClient client;
@@ -14,7 +14,7 @@ class SearchScreen extends StatefulWidget {
 }
 
 class _SearchScreenState extends State<SearchScreen> {
-  late final Future<List<Channel>> _allChannelsFuture;
+  late final Future<List<MediaItem>> _allChannelsFuture;
   String _query = '';
 
   @override
@@ -28,9 +28,8 @@ class _SearchScreenState extends State<SearchScreen> {
     return Scaffold(
       appBar: AppBar(
         title: TextField(
-          autofocus: true,
           decoration: const InputDecoration(
-            hintText: 'Search channels...',
+            hintText: 'Search live channels...',
             border: InputBorder.none,
           ),
           style: Theme.of(context).appBarTheme.titleTextStyle ??
@@ -38,7 +37,7 @@ class _SearchScreenState extends State<SearchScreen> {
           onChanged: (value) => setState(() => _query = value),
         ),
       ),
-      body: FutureBuilder<List<Channel>>(
+      body: FutureBuilder<List<MediaItem>>(
         future: _allChannelsFuture,
         builder: (context, snapshot) {
           if (snapshot.connectionState != ConnectionState.done) {
@@ -50,13 +49,13 @@ class _SearchScreenState extends State<SearchScreen> {
 
           final query = _query.trim().toLowerCase();
           final results = query.isEmpty
-              ? const <Channel>[]
+              ? const <MediaItem>[]
               : snapshot.data!
                   .where((c) => c.name.toLowerCase().contains(query))
                   .toList();
 
           if (query.isEmpty) {
-            return const Center(child: Text('Start typing to search channels.'));
+            return const Center(child: Text('Start typing to search live channels.'));
           }
           if (results.isEmpty) {
             return const Center(child: Text('No matching channels.'));
@@ -64,27 +63,7 @@ class _SearchScreenState extends State<SearchScreen> {
 
           return ListView.builder(
             itemCount: results.length,
-            itemBuilder: (context, index) {
-              final channel = results[index];
-              return ListTile(
-                leading: channel.logoUrl != null
-                    ? Image.network(
-                        channel.logoUrl!,
-                        width: 40,
-                        height: 40,
-                        errorBuilder: (_, _, _) => const Icon(Icons.tv),
-                      )
-                    : const Icon(Icons.tv),
-                title: Text(channel.name),
-                onTap: () {
-                  Navigator.of(context).push(
-                    MaterialPageRoute(
-                      builder: (_) => PlayerScreen(channel: channel),
-                    ),
-                  );
-                },
-              );
-            },
+            itemBuilder: (context, index) => MediaTile(item: results[index]),
           );
         },
       ),
