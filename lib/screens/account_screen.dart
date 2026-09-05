@@ -5,6 +5,7 @@ import '../services/credentials_store.dart';
 import '../services/theme_controller.dart';
 import '../services/xtream_api_client.dart';
 import 'login_screen.dart';
+import 'pair_send_screen.dart';
 
 class AccountScreen extends StatefulWidget {
   final XtreamApiClient client;
@@ -172,6 +173,20 @@ class _AccountScreenState extends State<AccountScreen> {
                         ],
                       );
                     },
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Card(
+                  child: ListTile(
+                    leading: const Icon(Icons.tv_outlined),
+                    title: const Text('Add a device'),
+                    subtitle: const Text('Sign in on a TV without typing your credentials'),
+                    trailing: const Icon(Icons.chevron_right),
+                    onTap: () => Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => PairSendScreen(credentials: credentials),
+                      ),
+                    ),
                   ),
                 ),
                 const SizedBox(height: 24),

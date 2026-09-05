@@ -6,6 +6,7 @@ import '../models/series_summary.dart';
 import '../services/xtream_api_client.dart';
 import '../widgets/media_tile.dart';
 import '../widgets/series_tile.dart';
+import '../widgets/tv_text_field.dart';
 import 'player_screen.dart';
 
 class _ProgramMatch {
@@ -82,9 +83,10 @@ class _SearchScreenState extends State<SearchScreen> {
                   color: colorScheme.surfaceContainerHighest,
                   borderRadius: BorderRadius.circular(28),
                 ),
-                child: TextField(
+                child: TvTextField(
                   controller: _queryController,
                   autofocus: widget.initialQuery != null,
+                  keyboardTitle: 'Search',
                   decoration: InputDecoration(
                     hintText: 'Search channels, movies, series, programs...',
                     border: InputBorder.none,

@@ -3,7 +3,9 @@ import 'package:flutter/material.dart';
 import '../models/xtream_credentials.dart';
 import '../services/credentials_store.dart';
 import '../services/xtream_api_client.dart';
+import '../widgets/tv_text_field.dart';
 import 'home_screen.dart';
+import 'pair_receive_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -16,6 +18,9 @@ class _LoginScreenState extends State<LoginScreen> {
   final _hostController = TextEditingController();
   final _usernameController = TextEditingController();
   final _passwordController = TextEditingController();
+  final _hostFocus = FocusNode();
+  final _usernameFocus = FocusNode();
+  final _passwordFocus = FocusNode();
   final _credentialsStore = CredentialsStore();
   bool _loading = false;
   String? _error;
@@ -38,6 +43,9 @@ class _LoginScreenState extends State<LoginScreen> {
     _hostController.dispose();
     _usernameController.dispose();
     _passwordController.dispose();
+    _hostFocus.dispose();
+    _usernameFocus.dispose();
+    _passwordFocus.dispose();
     super.dispose();
   }
 
@@ -53,6 +61,11 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   Future<void> _connect() async {
+    // On Android TV, the D-pad only navigates within the on-screen keyboard
+    // while a field is focused — unfocusing here is what actually dismisses
+    // it and hands control back to the remote.
+    FocusScope.of(context).unfocus();
+
     final credentials = XtreamCredentials(
       host: _normalizeHost(_hostController.text),
       username: _usernameController.text.trim(),
@@ -120,31 +133,42 @@ class _LoginScreenState extends State<LoginScreen> {
                         ?.copyWith(color: colorScheme.onSurfaceVariant),
                   ),
                   const SizedBox(height: 28),
-                  TextField(
+                  TvTextField(
                     controller: _hostController,
+                    focusNode: _hostFocus,
+                    keyboardTitle: 'Host',
                     decoration: const InputDecoration(
                       labelText: 'Host',
                       hintText: 'http://example.com:8080',
                       prefixIcon: Icon(Icons.dns_outlined),
                     ),
                     keyboardType: TextInputType.url,
+                    textInputAction: TextInputAction.next,
+                    onSubmitted: (_) => _usernameFocus.requestFocus(),
                   ),
                   const SizedBox(height: 12),
-                  TextField(
+                  TvTextField(
                     controller: _usernameController,
+                    focusNode: _usernameFocus,
+                    keyboardTitle: 'Username',
                     decoration: const InputDecoration(
                       labelText: 'Username',
                       prefixIcon: Icon(Icons.person_outline),
                     ),
+                    textInputAction: TextInputAction.next,
+                    onSubmitted: (_) => _passwordFocus.requestFocus(),
                   ),
                   const SizedBox(height: 12),
-                  TextField(
+                  TvTextField(
                     controller: _passwordController,
+                    focusNode: _passwordFocus,
+                    keyboardTitle: 'Password',
                     decoration: const InputDecoration(
                       labelText: 'Password',
                       prefixIcon: Icon(Icons.lock_outline),
                     ),
                     obscureText: true,
+                    textInputAction: TextInputAction.done,
                     onSubmitted: (_) => _connect(),
                   ),
                   const SizedBox(height: 20),
@@ -166,6 +190,17 @@ class _LoginScreenState extends State<LoginScreen> {
                             child: CircularProgressIndicator(strokeWidth: 2),
                           )
                         : const Text('Connect'),
+                  ),
+                  const SizedBox(height: 12),
+                  TextButton(
+                    onPressed: _loading
+                        ? null
+                        : () => Navigator.of(context).push(
+                              MaterialPageRoute(
+                                builder: (_) => const PairReceiveScreen(),
+                              ),
+                            ),
+                    child: const Text('Sign in by pairing with another device'),
                   ),
                 ],
               ),

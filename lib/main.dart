@@ -2,11 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:media_kit/media_kit.dart';
 
 import 'screens/splash_screen.dart';
+import 'services/device_info.dart';
 import 'services/theme_controller.dart';
 import 'theme.dart';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
   MediaKit.ensureInitialized();
+  await DeviceInfo.isTv();
   runApp(const IptvApp());
 }
 

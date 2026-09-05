@@ -25,6 +25,9 @@ ThemeData buildAppTheme(Brightness brightness) {
     colorScheme: colorScheme,
     scaffoldBackgroundColor: colorScheme.surface,
     splashFactory: InkSparkle.splashFactory,
+    // Material's default focus tint is subtle enough to be invisible from a
+    // couch with a TV remote; every focusable widget below leans on this.
+    focusColor: colorScheme.primary.withValues(alpha: 0.35),
     appBarTheme: AppBarTheme(
       backgroundColor: colorScheme.surface,
       foregroundColor: colorScheme.onSurface,
@@ -63,11 +66,21 @@ ThemeData buildAppTheme(Brightness brightness) {
         borderRadius: BorderRadius.circular(14),
         borderSide: BorderSide.none,
       ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(14),
+        borderSide: BorderSide(color: colorScheme.primary, width: 2),
+      ),
     ),
     filledButtonTheme: FilledButtonThemeData(
       style: FilledButton.styleFrom(
         padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 24),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+      ).copyWith(
+        side: WidgetStateProperty.resolveWith(
+          (states) => states.contains(WidgetState.focused)
+              ? BorderSide(color: colorScheme.onPrimary, width: 2.5)
+              : null,
+        ),
       ),
     ),
     chipTheme: ChipThemeData(

@@ -6,7 +6,9 @@ plugins {
 
 android {
     namespace = "com.wille.iptv_app"
-    compileSdk = flutter.compileSdkVersion
+    // flutter_secure_storage requires compileSdk 37; flutter.compileSdkVersion
+    // is still pinned to 36 on this Flutter release.
+    compileSdk = 37
     ndkVersion = flutter.ndkVersion
 
     compileOptions {
