@@ -69,103 +69,130 @@ class _SearchScreenState extends State<SearchScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+
     return Scaffold(
-      appBar: AppBar(
-        title: TextField(
-          controller: _queryController,
-          decoration: const InputDecoration(
-            hintText: 'Search channels, movies, series, programs...',
-            border: InputBorder.none,
-          ),
-          style: Theme.of(context).appBarTheme.titleTextStyle ??
-              const TextStyle(fontSize: 18),
-          onChanged: (value) => setState(() => _query = value),
-        ),
-      ),
-      body: FutureBuilder<_SearchData>(
-        future: _dataFuture,
-        builder: (context, snapshot) {
-          if (snapshot.connectionState != ConnectionState.done) {
-            return const Center(child: CircularProgressIndicator());
-          }
-          if (snapshot.hasError) {
-            return Center(child: Text('${snapshot.error}'));
-          }
-
-          final query = _query.trim().toLowerCase();
-          if (query.isEmpty) {
-            return const Center(
-              child: Text('Start typing to search channels, movies, series, or programs.'),
-            );
-          }
-
-          final (channels, movies, series, programs) = snapshot.data!;
-
-          final channelMatches =
-              channels.where((c) => c.name.toLowerCase().contains(query)).toList();
-          final movieMatches =
-              movies.where((m) => m.name.toLowerCase().contains(query)).toList();
-          final seriesMatches =
-              series.where((s) => s.name.toLowerCase().contains(query)).toList();
-
-          final channelsByEpgId = <String, MediaItem>{
-            for (final c in channels)
-              if (c.epgChannelId != null) c.epgChannelId!: c,
-          };
-          final programMatches = programs
-              .where((p) => p.title.toLowerCase().contains(query))
-              .map((p) {
-                final channel = channelsByEpgId[p.channelId];
-                return channel == null ? null : _ProgramMatch(program: p, channel: channel);
-              })
-              .whereType<_ProgramMatch>()
-              .toList()
-            ..sort((a, b) => a.program.start.compareTo(b.program.start));
-
-          final hasResults = channelMatches.isNotEmpty ||
-              movieMatches.isNotEmpty ||
-              seriesMatches.isNotEmpty ||
-              programMatches.isNotEmpty;
-          if (!hasResults) {
-            return const Center(child: Text('No matching results.'));
-          }
-
-          return ListView(
-            children: [
-              if (channelMatches.isNotEmpty) ...[
-                _SectionHeader('Live TV'),
-                for (final channel in channelMatches) MediaTile(item: channel),
-              ],
-              if (movieMatches.isNotEmpty) ...[
-                _SectionHeader('Movies'),
-                for (final movie in movieMatches) MediaTile(item: movie),
-              ],
-              if (seriesMatches.isNotEmpty) ...[
-                _SectionHeader('Series'),
-                for (final s in seriesMatches)
-                  SeriesTile(client: widget.client, series: s),
-              ],
-              if (programMatches.isNotEmpty) ...[
-                _SectionHeader('Programs'),
-                for (final match in programMatches)
-                  ListTile(
-                    leading: const Icon(Icons.live_tv),
-                    title: Text(match.program.title),
-                    subtitle: Text(
-                      '${match.channel.name} · ${_formatTime(match.program.start)}',
-                    ),
-                    onTap: () {
-                      Navigator.of(context).push(
-                        MaterialPageRoute(
-                          builder: (_) => PlayerScreen(item: match.channel),
-                        ),
-                      );
-                    },
+      body: SafeArea(
+        child: Column(
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
+              child: Container(
+                decoration: BoxDecoration(
+                  color: colorScheme.surfaceContainerHighest,
+                  borderRadius: BorderRadius.circular(28),
+                ),
+                child: TextField(
+                  controller: _queryController,
+                  autofocus: widget.initialQuery != null,
+                  decoration: InputDecoration(
+                    hintText: 'Search channels, movies, series, programs...',
+                    border: InputBorder.none,
+                    prefixIcon: const Icon(Icons.search),
+                    suffixIcon: _query.isEmpty
+                        ? null
+                        : IconButton(
+                            icon: const Icon(Icons.clear),
+                            onPressed: () {
+                              _queryController.clear();
+                              setState(() => _query = '');
+                            },
+                          ),
+                    contentPadding: const EdgeInsets.symmetric(vertical: 14),
                   ),
-              ],
-            ],
-          );
-        },
+                  onChanged: (value) => setState(() => _query = value),
+                ),
+              ),
+            ),
+            Expanded(
+              child: FutureBuilder<_SearchData>(
+                future: _dataFuture,
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState != ConnectionState.done) {
+                    return const Center(child: CircularProgressIndicator());
+                  }
+                  if (snapshot.hasError) {
+                    return Center(child: Text('${snapshot.error}'));
+                  }
+
+                  final query = _query.trim().toLowerCase();
+                  if (query.isEmpty) {
+                    return const Center(
+                      child: Text('Start typing to search channels, movies, series, or programs.'),
+                    );
+                  }
+
+                  final (channels, movies, series, programs) = snapshot.data!;
+
+                  final channelMatches =
+                      channels.where((c) => c.name.toLowerCase().contains(query)).toList();
+                  final movieMatches =
+                      movies.where((m) => m.name.toLowerCase().contains(query)).toList();
+                  final seriesMatches =
+                      series.where((s) => s.name.toLowerCase().contains(query)).toList();
+
+                  final channelsByEpgId = <String, MediaItem>{
+                    for (final c in channels)
+                      if (c.epgChannelId != null) c.epgChannelId!: c,
+                  };
+                  final programMatches = programs
+                      .where((p) => p.title.toLowerCase().contains(query))
+                      .map((p) {
+                        final channel = channelsByEpgId[p.channelId];
+                        return channel == null ? null : _ProgramMatch(program: p, channel: channel);
+                      })
+                      .whereType<_ProgramMatch>()
+                      .toList()
+                    ..sort((a, b) => a.program.start.compareTo(b.program.start));
+
+                  final hasResults = channelMatches.isNotEmpty ||
+                      movieMatches.isNotEmpty ||
+                      seriesMatches.isNotEmpty ||
+                      programMatches.isNotEmpty;
+                  if (!hasResults) {
+                    return const Center(child: Text('No matching results.'));
+                  }
+
+                  return ListView(
+                    children: [
+                      if (channelMatches.isNotEmpty) ...[
+                        _SectionHeader('Live TV'),
+                        for (final channel in channelMatches) MediaTile(item: channel),
+                      ],
+                      if (movieMatches.isNotEmpty) ...[
+                        _SectionHeader('Movies'),
+                        for (final movie in movieMatches) MediaTile(item: movie),
+                      ],
+                      if (seriesMatches.isNotEmpty) ...[
+                        _SectionHeader('Series'),
+                        for (final s in seriesMatches)
+                          SeriesTile(client: widget.client, series: s),
+                      ],
+                      if (programMatches.isNotEmpty) ...[
+                        _SectionHeader('Programs'),
+                        for (final match in programMatches)
+                          ListTile(
+                            leading: const Icon(Icons.live_tv),
+                            title: Text(match.program.title),
+                            subtitle: Text(
+                              '${match.channel.name} · ${_formatTime(match.program.start)}',
+                            ),
+                            onTap: () {
+                              Navigator.of(context).push(
+                                MaterialPageRoute(
+                                  builder: (_) => PlayerScreen(item: match.channel),
+                                ),
+                              );
+                            },
+                          ),
+                      ],
+                    ],
+                  );
+                },
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

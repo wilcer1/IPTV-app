@@ -34,41 +34,48 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
     final colorScheme = Theme.of(context).colorScheme;
 
     return Scaffold(
-      appBar: AppBar(title: Text(widget.title)),
       body: FutureBuilder<List<Category>>(
         future: _categoriesFuture,
         builder: (context, snapshot) {
-          if (snapshot.connectionState != ConnectionState.done) {
-            return const Center(child: CircularProgressIndicator());
-          }
-          if (snapshot.hasError) {
-            return Center(child: Text('${snapshot.error}'));
-          }
-
-          final categories = snapshot.data!;
-          if (categories.isEmpty) {
-            return const Center(child: Text('No categories found.'));
-          }
-
-          return ListView.builder(
-            padding: const EdgeInsets.fromLTRB(12, 12, 12, 12),
-            itemCount: categories.length,
-            itemBuilder: (context, index) {
-              final category = categories[index];
-              return Card(
-                margin: const EdgeInsets.symmetric(vertical: 4),
-                child: ListTile(
-                  leading: CircleAvatar(
-                    backgroundColor: colorScheme.primaryContainer,
-                    foregroundColor: colorScheme.onPrimaryContainer,
-                    child: Icon(widget.icon, size: 20),
+          return CustomScrollView(
+            slivers: [
+              SliverAppBar.large(title: Text(widget.title)),
+              if (snapshot.connectionState != ConnectionState.done)
+                const SliverFillRemaining(
+                  child: Center(child: CircularProgressIndicator()),
+                )
+              else if (snapshot.hasError)
+                SliverFillRemaining(
+                  child: Center(child: Text('${snapshot.error}')),
+                )
+              else if (snapshot.data!.isEmpty)
+                const SliverFillRemaining(
+                  child: Center(child: Text('No categories found.')),
+                )
+              else
+                SliverPadding(
+                  padding: const EdgeInsets.fromLTRB(12, 4, 12, 12),
+                  sliver: SliverList.builder(
+                    itemCount: snapshot.data!.length,
+                    itemBuilder: (context, index) {
+                      final category = snapshot.data![index];
+                      return Card(
+                        margin: const EdgeInsets.symmetric(vertical: 4),
+                        child: ListTile(
+                          leading: CircleAvatar(
+                            backgroundColor: colorScheme.primaryContainer,
+                            foregroundColor: colorScheme.onPrimaryContainer,
+                            child: Icon(widget.icon, size: 20),
+                          ),
+                          title: Text(category.name),
+                          trailing: const Icon(Icons.chevron_right),
+                          onTap: () => widget.onCategoryTap(context, category),
+                        ),
+                      );
+                    },
                   ),
-                  title: Text(category.name),
-                  trailing: const Icon(Icons.chevron_right),
-                  onTap: () => widget.onCategoryTap(context, category),
                 ),
-              );
-            },
+            ],
           );
         },
       ),

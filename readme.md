@@ -9,8 +9,7 @@ A cross-platform IPTV client built with Flutter, targeting Android (phone and Go
 - **Search** across channels, movies, series, and the program guide (EPG) at once
 - **Favorites** — star any channel, movie, or episode for quick access later
 - **Account tab** — view subscription status/expiry/connection count, log out
-- **Football tab** — pick favorite leagues/teams (via a free [football-data.org](https://www.football-data.org/client/register) API key), browse a given day's fixtures, and tap a match to auto-find candidate live streams from your subscription's program guide
-- **Light/dark theme**, follows system by default
+- **Light/dark theme**, follows system by default, with an adaptive layout (side navigation rail on wide/desktop windows, bottom bar on phones)
 - Auto-reconnect on launch using securely stored credentials
 
 ## Download (Windows)
@@ -45,5 +44,4 @@ For Android: `flutter build apk --release --no-tree-shake-icons`.
 - Flutter's release-build icon tree-shaking drops icons this app uses (nav bar, favorite stars). Always build release with `--no-tree-shake-icons` until resolved upstream.
 - Movie/episode playback assumes the `container_extension` reported by the Xtream API is accurate; unusual providers may need adjustment.
 - Search's EPG (program guide) matching depends on the provider populating `epg_channel_id` on live streams and serving `xmltv.php`; providers without EPG support will only get channel/movie/series-name search results.
-- The Football tab's "find streams for this match" feature relies on the same EPG data and a fuzzy team-name match against program titles; it can miss matches your provider doesn't label clearly, or the wrong window if your provider's guide times are off.
 - **Windows builds are unsigned.** Regular SmartScreen shows a one-click "Run anyway" prompt, but Windows 11's stricter **Smart App Control** blocks unsigned/unrecognized binaries outright with no override — if you hit this, either code-sign the build yourself or disable Smart App Control (note: once it's fully "On" rather than "Evaluation", Microsoft only lets you turn it off via a clean Windows reinstall).

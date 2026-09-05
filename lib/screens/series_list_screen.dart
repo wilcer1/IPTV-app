@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../models/series_summary.dart';
 import '../services/xtream_api_client.dart';
-import '../widgets/series_tile.dart';
+import '../widgets/series_poster_card.dart';
 
 class SeriesListScreen extends StatefulWidget {
   final String title;
@@ -32,27 +32,42 @@ class _SeriesListScreenState extends State<SeriesListScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text(widget.title)),
       body: FutureBuilder<List<SeriesSummary>>(
         future: _seriesFuture,
         builder: (context, snapshot) {
-          if (snapshot.connectionState != ConnectionState.done) {
-            return const Center(child: CircularProgressIndicator());
-          }
-          if (snapshot.hasError) {
-            return Center(child: Text('${snapshot.error}'));
-          }
-
-          final series = snapshot.data!;
-          if (series.isEmpty) {
-            return const Center(child: Text('No series found in this category.'));
-          }
-
-          return ListView.builder(
-            padding: const EdgeInsets.symmetric(vertical: 8),
-            itemCount: series.length,
-            itemBuilder: (context, index) =>
-                SeriesTile(client: widget.client, series: series[index]),
+          return CustomScrollView(
+            slivers: [
+              SliverAppBar.large(title: Text(widget.title)),
+              if (snapshot.connectionState != ConnectionState.done)
+                const SliverFillRemaining(
+                  child: Center(child: CircularProgressIndicator()),
+                )
+              else if (snapshot.hasError)
+                SliverFillRemaining(child: Center(child: Text('${snapshot.error}')))
+              else if (snapshot.data!.isEmpty)
+                const SliverFillRemaining(
+                  child: Center(child: Text('No series found in this category.')),
+                )
+              else
+                SliverPadding(
+                  padding: const EdgeInsets.all(12),
+                  sliver: SliverGrid(
+                    gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+                      maxCrossAxisExtent: 160,
+                      mainAxisSpacing: 12,
+                      crossAxisSpacing: 12,
+                      childAspectRatio: 0.62,
+                    ),
+                    delegate: SliverChildBuilderDelegate(
+                      (context, index) => SeriesPosterCard(
+                        client: widget.client,
+                        series: snapshot.data![index],
+                      ),
+                      childCount: snapshot.data!.length,
+                    ),
+                  ),
+                ),
+            ],
           );
         },
       ),

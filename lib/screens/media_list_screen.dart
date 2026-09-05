@@ -32,40 +32,47 @@ class _MediaListScreenState extends State<MediaListScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text(widget.title)),
       body: FutureBuilder<List<MediaItem>>(
         future: _itemsFuture,
         builder: (context, snapshot) {
-          if (snapshot.connectionState != ConnectionState.done) {
-            return const Center(child: CircularProgressIndicator());
-          }
-          if (snapshot.hasError) {
-            return Center(child: Text('${snapshot.error}'));
-          }
-
-          final items = snapshot.data!;
-          if (items.isEmpty) {
-            return const Center(child: Text('Nothing found in this category.'));
-          }
-
-          if (widget.gridView) {
-            return GridView.builder(
-              padding: const EdgeInsets.all(12),
-              gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-                maxCrossAxisExtent: 160,
-                mainAxisSpacing: 12,
-                crossAxisSpacing: 12,
-                childAspectRatio: 0.62,
-              ),
-              itemCount: items.length,
-              itemBuilder: (context, index) => MediaPosterCard(item: items[index]),
-            );
-          }
-
-          return ListView.builder(
-            padding: const EdgeInsets.symmetric(vertical: 8),
-            itemCount: items.length,
-            itemBuilder: (context, index) => MediaTile(item: items[index]),
+          return CustomScrollView(
+            slivers: [
+              SliverAppBar.large(title: Text(widget.title)),
+              if (snapshot.connectionState != ConnectionState.done)
+                const SliverFillRemaining(
+                  child: Center(child: CircularProgressIndicator()),
+                )
+              else if (snapshot.hasError)
+                SliverFillRemaining(child: Center(child: Text('${snapshot.error}')))
+              else if (snapshot.data!.isEmpty)
+                const SliverFillRemaining(
+                  child: Center(child: Text('Nothing found in this category.')),
+                )
+              else if (widget.gridView)
+                SliverPadding(
+                  padding: const EdgeInsets.all(12),
+                  sliver: SliverGrid(
+                    gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+                      maxCrossAxisExtent: 160,
+                      mainAxisSpacing: 12,
+                      crossAxisSpacing: 12,
+                      childAspectRatio: 0.62,
+                    ),
+                    delegate: SliverChildBuilderDelegate(
+                      (context, index) => MediaPosterCard(item: snapshot.data![index]),
+                      childCount: snapshot.data!.length,
+                    ),
+                  ),
+                )
+              else
+                SliverPadding(
+                  padding: const EdgeInsets.symmetric(vertical: 8),
+                  sliver: SliverList.builder(
+                    itemCount: snapshot.data!.length,
+                    itemBuilder: (context, index) => MediaTile(item: snapshot.data![index]),
+                  ),
+                ),
+            ],
           );
         },
       ),

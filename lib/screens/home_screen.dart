@@ -4,10 +4,35 @@ import '../services/xtream_api_client.dart';
 import 'account_screen.dart';
 import 'categories_screen.dart';
 import 'favorites_screen.dart';
-import 'football_screen.dart';
 import 'media_list_screen.dart';
 import 'search_screen.dart';
 import 'series_list_screen.dart';
+
+class _NavDestination {
+  final IconData icon;
+  final IconData selectedIcon;
+  final String label;
+
+  const _NavDestination({
+    required this.icon,
+    required this.selectedIcon,
+    required this.label,
+  });
+}
+
+const _destinations = [
+  _NavDestination(icon: Icons.live_tv_outlined, selectedIcon: Icons.live_tv, label: 'Live TV'),
+  _NavDestination(icon: Icons.movie_outlined, selectedIcon: Icons.movie, label: 'Movies'),
+  _NavDestination(
+      icon: Icons.video_library_outlined, selectedIcon: Icons.video_library, label: 'Series'),
+  _NavDestination(icon: Icons.search, selectedIcon: Icons.search, label: 'Search'),
+  _NavDestination(icon: Icons.star_outline, selectedIcon: Icons.star, label: 'Favorites'),
+  _NavDestination(
+      icon: Icons.account_circle_outlined, selectedIcon: Icons.account_circle, label: 'Account'),
+];
+
+const _wideBreakpoint = 640.0;
+const _extendedBreakpoint = 1000.0;
 
 class HomeScreen extends StatefulWidget {
   final XtreamApiClient client;
@@ -26,7 +51,6 @@ class _HomeScreenState extends State<HomeScreen> {
     final client = widget.client;
 
     final tabs = [
-      FootballScreen(client: client),
       CategoriesScreen(
         title: 'Live TV',
         icon: Icons.live_tv,
@@ -79,22 +103,63 @@ class _HomeScreenState extends State<HomeScreen> {
       AccountScreen(client: client),
     ];
 
-    return Scaffold(
-      body: IndexedStack(index: _index, children: tabs),
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: _index,
-        onDestinationSelected: (value) => setState(() => _index = value),
-        labelBehavior: NavigationDestinationLabelBehavior.onlyShowSelected,
-        destinations: const [
-          NavigationDestination(icon: Icon(Icons.sports_soccer), label: 'Football'),
-          NavigationDestination(icon: Icon(Icons.live_tv), label: 'Live TV'),
-          NavigationDestination(icon: Icon(Icons.movie), label: 'Movies'),
-          NavigationDestination(icon: Icon(Icons.video_library), label: 'Series'),
-          NavigationDestination(icon: Icon(Icons.search), label: 'Search'),
-          NavigationDestination(icon: Icon(Icons.star), label: 'Favorites'),
-          NavigationDestination(icon: Icon(Icons.account_circle), label: 'Account'),
-        ],
-      ),
+    final body = IndexedStack(index: _index, children: tabs);
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        if (constraints.maxWidth < _wideBreakpoint) {
+          return Scaffold(
+            body: body,
+            bottomNavigationBar: NavigationBar(
+              selectedIndex: _index,
+              onDestinationSelected: (value) => setState(() => _index = value),
+              labelBehavior: NavigationDestinationLabelBehavior.onlyShowSelected,
+              destinations: [
+                for (final d in _destinations)
+                  NavigationDestination(
+                    icon: Icon(d.icon),
+                    selectedIcon: Icon(d.selectedIcon),
+                    label: d.label,
+                  ),
+              ],
+            ),
+          );
+        }
+
+        final extended = constraints.maxWidth >= _extendedBreakpoint;
+        return Scaffold(
+          body: Row(
+            children: [
+              NavigationRail(
+                selectedIndex: _index,
+                onDestinationSelected: (value) => setState(() => _index = value),
+                extended: extended,
+                minExtendedWidth: 220,
+                labelType:
+                    extended ? NavigationRailLabelType.none : NavigationRailLabelType.all,
+                leading: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  child: Icon(
+                    Icons.live_tv_rounded,
+                    size: 32,
+                    color: Theme.of(context).colorScheme.primary,
+                  ),
+                ),
+                destinations: [
+                  for (final d in _destinations)
+                    NavigationRailDestination(
+                      icon: Icon(d.icon),
+                      selectedIcon: Icon(d.selectedIcon),
+                      label: Text(d.label),
+                    ),
+                ],
+              ),
+              const VerticalDivider(width: 1, thickness: 1),
+              Expanded(child: body),
+            ],
+          ),
+        );
+      },
     );
   }
 }
