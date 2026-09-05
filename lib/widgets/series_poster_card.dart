@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../models/series_summary.dart';
 import '../screens/series_detail_screen.dart';
 import '../services/xtream_api_client.dart';
+import 'deferred_network_image.dart';
 
 class SeriesPosterCard extends StatelessWidget {
   final XtreamApiClient client;
@@ -26,10 +27,13 @@ class SeriesPosterCard extends StatelessWidget {
           children: [
             Expanded(
               child: series.coverUrl != null
-                  ? Image.network(
-                      series.coverUrl!,
-                      fit: BoxFit.cover,
-                      errorBuilder: (_, _, _) => const _CoverFallback(),
+                  ? DeferredNetworkImage(
+                      url: series.coverUrl!,
+                      // Poster grid cells vary in exact pixel size, but cap
+                      // decode resolution well above any realistic cell
+                      // size to bound memory use.
+                      cacheWidth: 300,
+                      placeholder: const _CoverFallback(),
                     )
                   : const _CoverFallback(),
             ),
