@@ -1,3 +1,5 @@
+import 'package:flutter_secure_storage/test/test_flutter_secure_storage_platform.dart';
+import 'package:flutter_secure_storage_platform_interface/flutter_secure_storage_platform_interface.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -7,6 +9,7 @@ void main() {
   testWidgets('App falls back to the Xtream login screen with no saved credentials',
       (WidgetTester tester) async {
     SharedPreferences.setMockInitialValues({});
+    FlutterSecureStoragePlatform.instance = TestFlutterSecureStoragePlatform({});
 
     await tester.pumpWidget(const IptvApp());
     await tester.pumpAndSettle();
