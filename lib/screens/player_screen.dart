@@ -8,11 +8,16 @@ import 'package:media_kit_video/media_kit_video.dart';
 
 import '../models/media_item.dart';
 import '../services/favorites_store.dart';
+import '../services/watch_progress_store.dart';
 
 class PlayerScreen extends StatefulWidget {
   final MediaItem item;
 
-  const PlayerScreen({super.key, required this.item});
+  /// The episodes of the show this one belongs to, in watching order. Lets
+  /// the player offer "Next episode" and keep going when one finishes.
+  final List<MediaItem>? queue;
+
+  const PlayerScreen({super.key, required this.item, this.queue});
 
   @override
   State<PlayerScreen> createState() => _PlayerScreenState();
@@ -38,14 +43,32 @@ class _PlayerScreenState extends State<PlayerScreen> {
   // twice within ~1 second, which is what "laggy" playback actually was.
   static const _reopenCooldown = Duration(seconds: 10);
 
+  static const _progressSaveInterval = Duration(seconds: 5);
+  static const _resumeNoticeDuration = Duration(seconds: 8);
+
+  // Offer "Next episode" once this little is left (credits territory).
+  static const _nextEpisodeWindow = Duration(seconds: 40);
+
   late final Player _player;
   late final VideoController _controller;
   StreamSubscription<bool>? _completedSubscription;
   StreamSubscription<bool>? _bufferingSubscription;
+  StreamSubscription<Duration>? _positionSubscription;
   Timer? _stallTimer;
   Timer? _hideControlsTimer;
+  Timer? _saveTimer;
+  Timer? _resumeNoticeTimer;
   bool _controlsVisible = true;
   DateTime? _lastReopen;
+
+  MediaItem? _next;
+  Duration? _resumedFrom;
+  // Until playback has actually reached the resume point, the player reports
+  // position 0 — saving that would wipe out the very position we're resuming.
+  bool _resumeApplied = true;
+  bool _showResumeNotice = false;
+  bool _nearEnd = false;
+  bool _advancing = false;
 
   @override
   void initState() {
@@ -71,7 +94,23 @@ class _PlayerScreenState extends State<PlayerScreen> {
           ? const VideoControllerConfiguration(width: 1280, height: 720)
           : const VideoControllerConfiguration(),
     );
-    _player.open(Media(widget.item.streamUrl));
+
+    if (!widget.item.isLive) {
+      _next = _resolveNext();
+      final saved = WatchProgressStore.instance.entryFor(widget.item.id);
+      if (saved != null &&
+          !saved.completed &&
+          saved.positionMs >= WatchProgressStore.minTrackedPosition.inMilliseconds) {
+        _resumedFrom = Duration(milliseconds: saved.positionMs);
+        _resumeApplied = false;
+        _showResumeNotice = true;
+        _resumeNoticeTimer = Timer(_resumeNoticeDuration, () {
+          if (mounted) setState(() => _showResumeNotice = false);
+        });
+      }
+    }
+
+    _player.open(Media(widget.item.streamUrl, start: _resumedFrom));
     _scheduleHideControls();
     HardwareKeyboard.instance.addHandler(_onHardwareKey);
 
@@ -85,7 +124,83 @@ class _PlayerScreenState extends State<PlayerScreen> {
           _stallTimer = Timer(_stallTimeout, _reopen);
         }
       });
+    } else {
+      _positionSubscription = _player.stream.position.listen(_onPosition);
+      _saveTimer = Timer.periodic(_progressSaveInterval, (_) => _saveProgress());
+      _completedSubscription = _player.stream.completed.listen((completed) {
+        if (completed) _onFinished();
+      });
     }
+  }
+
+  MediaItem? _resolveNext() {
+    final queue = widget.queue;
+    if (queue == null) return null;
+    final index = queue.indexWhere((e) => e.id == widget.item.id);
+    return (index >= 0 && index + 1 < queue.length) ? queue[index + 1] : null;
+  }
+
+  void _onPosition(Duration position) {
+    final resumedFrom = _resumedFrom;
+    if (!_resumeApplied &&
+        resumedFrom != null &&
+        position >= resumedFrom - const Duration(seconds: 3)) {
+      _resumeApplied = true;
+    }
+
+    final duration = _player.state.duration;
+    final nearEnd = _next != null &&
+        duration > const Duration(minutes: 5) &&
+        duration - position <= _nextEpisodeWindow;
+    if (nearEnd != _nearEnd && mounted) setState(() => _nearEnd = nearEnd);
+  }
+
+  void _saveProgress() {
+    if (widget.item.isLive || !_resumeApplied) return;
+    final duration = _player.state.duration;
+    if (duration <= Duration.zero) return;
+    WatchProgressStore.instance.record(
+      widget.item,
+      position: _player.state.position,
+      duration: duration,
+      next: _next,
+    );
+  }
+
+  void _onFinished() {
+    final duration = _player.state.duration;
+    if (_advancing || duration < WatchProgressStore.minTrackedDuration) return;
+    _advancing = true;
+
+    WatchProgressStore.instance.record(
+      widget.item,
+      position: duration,
+      duration: duration,
+      next: _next,
+    );
+
+    if (_next != null) {
+      _playNext();
+    } else if (mounted) {
+      // Nothing follows (a movie, or a show's last episode): back to browsing.
+      Navigator.of(context).maybePop();
+    }
+  }
+
+  void _playNext() {
+    final next = _next;
+    if (next == null || !mounted) return;
+    _advancing = true;
+    Navigator.of(context).pushReplacement(
+      MaterialPageRoute(builder: (_) => PlayerScreen(item: next, queue: widget.queue)),
+    );
+  }
+
+  void _startOver() {
+    _player.seek(Duration.zero);
+    WatchProgressStore.instance.remove(widget.item.id);
+    _resumeApplied = true;
+    setState(() => _showResumeNotice = false);
   }
 
   void _reopen() {
@@ -118,13 +233,28 @@ class _PlayerScreenState extends State<PlayerScreen> {
 
   @override
   void dispose() {
+    // Must happen before the player is disposed: its state is gone after.
+    _saveProgress();
+    WatchProgressStore.instance.flush();
+
     _stallTimer?.cancel();
     _hideControlsTimer?.cancel();
+    _saveTimer?.cancel();
+    _resumeNoticeTimer?.cancel();
     _completedSubscription?.cancel();
     _bufferingSubscription?.cancel();
+    _positionSubscription?.cancel();
     HardwareKeyboard.instance.removeHandler(_onHardwareKey);
     _player.dispose();
     super.dispose();
+  }
+
+  String _formatTime(Duration d) {
+    String two(int n) => n.toString().padLeft(2, '0');
+    final h = d.inHours;
+    final m = d.inMinutes.remainder(60);
+    final s = d.inSeconds.remainder(60);
+    return h > 0 ? '$h:${two(m)}:${two(s)}' : '$m:${two(s)}';
   }
 
   @override
@@ -144,6 +274,10 @@ class _PlayerScreenState extends State<PlayerScreen> {
     final mobileControlsThemeFullscreen = MaterialVideoControlsThemeData(
       displaySeekBar: !widget.item.isLive,
     );
+
+    final title = widget.item.seriesTitle != null
+        ? '${widget.item.seriesTitle}${widget.item.episodeLabel != null ? ' · ${widget.item.episodeLabel}' : ''}'
+        : widget.item.name;
 
     return Scaffold(
       backgroundColor: Colors.black,
@@ -168,6 +302,41 @@ class _PlayerScreenState extends State<PlayerScreen> {
                     return const CircularProgressIndicator(color: Colors.white);
                   },
                 ),
+                if (_showResumeNotice && _resumedFrom != null)
+                  Positioned(
+                    left: 16,
+                    bottom: 110,
+                    child: Material(
+                      color: Colors.black87,
+                      borderRadius: BorderRadius.circular(10),
+                      child: Padding(
+                        padding: const EdgeInsets.only(left: 14, right: 4),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              'Resumed at ${_formatTime(_resumedFrom!)}',
+                              style: const TextStyle(color: Colors.white),
+                            ),
+                            TextButton(
+                              onPressed: _startOver,
+                              child: const Text('Start over'),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                if (_nearEnd && _next != null)
+                  Positioned(
+                    right: 16,
+                    bottom: 110,
+                    child: FilledButton.icon(
+                      onPressed: _playNext,
+                      icon: const Icon(Icons.skip_next),
+                      label: const Text('Next episode'),
+                    ),
+                  ),
                 Positioned(
                   top: 0,
                   left: 0,
@@ -195,7 +364,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
                               ),
                               Expanded(
                                 child: Text(
-                                  widget.item.name,
+                                  title,
                                   style: const TextStyle(color: Colors.white, fontSize: 18),
                                   overflow: TextOverflow.ellipsis,
                                 ),

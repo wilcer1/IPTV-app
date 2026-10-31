@@ -4,6 +4,7 @@ import '../models/media_item.dart';
 import '../screens/player_screen.dart';
 import '../services/favorites_store.dart';
 import 'deferred_network_image.dart';
+import 'watch_progress_widgets.dart';
 
 class MediaPosterCard extends StatelessWidget {
   final MediaItem item;
@@ -29,17 +30,35 @@ class MediaPosterCard extends StatelessWidget {
                   MaterialPageRoute(builder: (_) => PlayerScreen(item: item)),
                 );
               },
-              child: item.logoUrl != null
-                  ? DeferredNetworkImage(
-                      url: item.logoUrl!,
-                      width: double.infinity,
-                      // Poster grid cells vary in exact pixel size, but
-                      // cap decode resolution well above any realistic
-                      // cell size to bound memory use.
-                      cacheWidth: 300,
-                      placeholder: const _PosterFallback(),
-                    )
-                  : const _PosterFallback(),
+              child: Stack(
+                fit: StackFit.expand,
+                children: [
+                  item.logoUrl != null
+                      ? DeferredNetworkImage(
+                          url: item.logoUrl!,
+                          width: double.infinity,
+                          // Poster grid cells vary in exact pixel size, but
+                          // cap decode resolution well above any realistic
+                          // cell size to bound memory use.
+                          cacheWidth: 300,
+                          placeholder: const _PosterFallback(),
+                        )
+                      : const _PosterFallback(),
+                  // Both overlays are non-interactive, so they don't
+                  // disturb the poster's own tap/focus target.
+                  Positioned(
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    child: WatchProgressBar(itemId: item.id),
+                  ),
+                  Positioned(
+                    top: 6,
+                    left: 6,
+                    child: WatchedBadge(itemId: item.id),
+                  ),
+                ],
+              ),
             ),
           ),
           Padding(

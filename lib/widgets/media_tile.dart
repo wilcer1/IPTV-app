@@ -4,11 +4,16 @@ import '../models/media_item.dart';
 import '../screens/player_screen.dart';
 import '../services/favorites_store.dart';
 import 'deferred_network_image.dart';
+import 'watch_progress_widgets.dart';
 
 class MediaTile extends StatelessWidget {
   final MediaItem item;
 
-  const MediaTile({super.key, required this.item});
+  /// Sibling episodes in watching order, so the player can offer "Next
+  /// episode". Null for anything that isn't part of a show.
+  final List<MediaItem>? queue;
+
+  const MediaTile({super.key, required this.item, this.queue});
 
   @override
   Widget build(BuildContext context) {
@@ -32,7 +37,9 @@ class MediaTile extends StatelessWidget {
                   borderRadius: const BorderRadius.horizontal(left: Radius.circular(12)),
                   onTap: () {
                     Navigator.of(context).push(
-                      MaterialPageRoute(builder: (_) => PlayerScreen(item: item)),
+                      MaterialPageRoute(
+                        builder: (_) => PlayerScreen(item: item, queue: queue),
+                      ),
                     );
                   },
                   child: Padding(
@@ -55,7 +62,15 @@ class MediaTile extends StatelessWidget {
                           ),
                         ),
                         const SizedBox(width: 16),
-                        Expanded(child: Text(item.name)),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(item.name),
+                              if (!item.isLive) WatchStatusLine(itemId: item.id),
+                            ],
+                          ),
+                        ),
                       ],
                     ),
                   ),

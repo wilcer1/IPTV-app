@@ -171,27 +171,41 @@ M3uLibrary buildM3uLibrary(String content) {
         var title = (match?.group(1) ?? '').trim();
         if (title.isEmpty) title = entry.group;
         final season = int.tryParse(match?.group(2) ?? '') ?? 1;
+        final episodeNumber = int.tryParse(match?.group(3) ?? '');
+        final seriesKey = '${entry.group}|${title.toLowerCase()}';
         final bucket = (seriesBuckets[entry.group] ??= {})
-            .putIfAbsent(title.toLowerCase(), () => _SeriesBucket(title, entry.logo));
-        (bucket.seasons[season] ??= []).add(MediaItem(name: entry.name, streamUrl: entry.url));
+            .putIfAbsent(seriesKey, () => _SeriesBucket(seriesKey, title, entry.logo));
+        (bucket.seasons[season] ??= []).add(MediaItem(
+          name: entry.name,
+          streamUrl: entry.url,
+          logoUrl: entry.logo ?? bucket.cover,
+          seriesId: bucket.id,
+          seriesTitle: bucket.title,
+          season: season,
+          episode: episodeNumber,
+        ));
     }
   }
 
   final seriesByCategory = <String, List<SeriesSummary>>{};
   final seriesDetails = <String, SeriesDetails>{};
   seriesBuckets.forEach((category, buckets) {
-    for (final entry in buckets.entries) {
-      final id = '$category|${entry.key}';
-      final bucket = entry.value;
+    for (final bucket in buckets.values) {
       (seriesByCategory[category] ??= [])
-          .add(SeriesSummary(seriesId: id, name: bucket.title, coverUrl: bucket.cover));
+          .add(SeriesSummary(seriesId: bucket.id, name: bucket.title, coverUrl: bucket.cover));
       final seasonNumbers = bucket.seasons.keys.toList()..sort();
-      seriesDetails[id] = SeriesDetails(
+      seriesDetails[bucket.id] = SeriesDetails(
         name: bucket.title,
         coverUrl: bucket.cover,
         seasons: [
           for (final n in seasonNumbers)
-            SeriesSeason(seasonNumber: '$n', episodes: bucket.seasons[n]!),
+            SeriesSeason(
+              seasonNumber: '$n',
+              // Playlists are often shuffled; episodes must be in watching
+              // order for "next episode" to mean anything. Dart's sort isn't
+              // stable, so tie-break on the original position.
+              episodes: _sortedByEpisode(bucket.seasons[n]!),
+            ),
         ],
       );
     }
@@ -213,10 +227,20 @@ M3uLibrary buildM3uLibrary(String content) {
   );
 }
 
+List<MediaItem> _sortedByEpisode(List<MediaItem> episodes) {
+  final indexed = [for (var i = 0; i < episodes.length; i++) (i, episodes[i])];
+  indexed.sort((a, b) {
+    final byEpisode = (a.$2.episode ?? 1 << 30).compareTo(b.$2.episode ?? 1 << 30);
+    return byEpisode != 0 ? byEpisode : a.$1.compareTo(b.$1);
+  });
+  return [for (final e in indexed) e.$2];
+}
+
 class _SeriesBucket {
+  final String id;
   final String title;
   final String? cover;
   final Map<int, List<MediaItem>> seasons = {};
 
-  _SeriesBucket(this.title, this.cover);
+  _SeriesBucket(this.id, this.title, this.cover);
 }

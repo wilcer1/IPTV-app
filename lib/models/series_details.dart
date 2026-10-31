@@ -19,4 +19,7 @@ class SeriesDetails {
     this.plot,
     required this.seasons,
   });
+
+  /// Every episode in watching order, used to find "the next episode".
+  List<MediaItem> get allEpisodes => [for (final season in seasons) ...season.episodes];
 }

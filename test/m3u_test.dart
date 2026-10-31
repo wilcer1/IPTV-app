@@ -78,6 +78,17 @@ void main() {
       expect(details.seasons.map((s) => s.seasonNumber), ['1', '2']);
       expect(details.seasons.first.episodes, hasLength(2));
     });
+
+    test('episodes carry what history needs, in watching order', () {
+      final id = library.seriesByCategory['Shows']!.single.seriesId;
+      final episodes = library.seriesDetails[id]!.allEpisodes;
+
+      expect(episodes.map((e) => (e.season, e.episode)), [(1, 1), (1, 2), (2, 1)]);
+      expect(episodes.first.seriesId, id);
+      expect(episodes.first.seriesTitle, 'Breaking Bad');
+      expect(episodes.first.episodeLabel, 'S1 E1');
+      expect(episodes.map((e) => e.id).toSet(), hasLength(3));
+    });
   });
 
   group('XtreamCredentials.tryFromPlaylistUrl', () {

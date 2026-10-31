@@ -89,6 +89,7 @@ class XtreamApiClient implements IptvClient {
       final icon = json['stream_icon'] as String?;
       final epgChannelId = json['epg_channel_id'] as String?;
       return MediaItem(
+        id: 'x:live:$streamId',
         name: json['name'] as String? ?? 'Unknown channel',
         streamUrl: credentials.liveStreamUrl(streamId),
         logoUrl: (icon == null || icon.isEmpty) ? null : icon,
@@ -128,6 +129,7 @@ class XtreamApiClient implements IptvClient {
       final extension = json['container_extension'] as String? ?? 'mp4';
       final icon = json['stream_icon'] as String?;
       return MediaItem(
+        id: 'x:movie:$streamId',
         name: json['name'] as String? ?? 'Unknown movie',
         streamUrl: credentials.vodStreamUrl(streamId, extension),
         logoUrl: (icon == null || icon.isEmpty) ? null : icon,
@@ -160,24 +162,38 @@ class XtreamApiClient implements IptvClient {
 
     final info = data['info'] as Map<String, dynamic>? ?? {};
     final episodesBySeason = data['episodes'] as Map<String, dynamic>? ?? {};
+    final seriesName = info['name'] as String? ?? 'Unknown series';
+    final cover = info['cover'] as String?;
 
-    final seasons = episodesBySeason.entries.map((entry) {
+    final seasonEntries = episodesBySeason.entries.toList()
+      ..sort((a, b) => (int.tryParse(a.key) ?? 0).compareTo(int.tryParse(b.key) ?? 0));
+
+    final seasons = seasonEntries.map((entry) {
+      final seasonNumber = int.tryParse(entry.key);
       final episodes = (entry.value as List<dynamic>).map((e) {
         final json = e as Map<String, dynamic>;
         final episodeId = int.parse(json['id'].toString());
         final extension =
             json['container_extension'] as String? ?? 'mp4';
+        final episodeInfo = json['info'] as Map<String, dynamic>?;
+        final thumb = episodeInfo?['movie_image'] as String?;
         return MediaItem(
+          id: 'x:ep:$episodeId',
           name: json['title'] as String? ?? 'Episode',
           streamUrl: credentials.seriesEpisodeStreamUrl(episodeId, extension),
+          logoUrl: (thumb != null && thumb.isNotEmpty) ? thumb : cover,
+          seriesId: seriesId,
+          seriesTitle: seriesName,
+          season: seasonNumber,
+          episode: int.tryParse('${json['episode_num']}'),
         );
       }).toList();
       return SeriesSeason(seasonNumber: entry.key, episodes: episodes);
     }).toList();
 
     return SeriesDetails(
-      name: info['name'] as String? ?? 'Unknown series',
-      coverUrl: info['cover'] as String?,
+      name: seriesName,
+      coverUrl: cover,
       plot: info['plot'] as String?,
       seasons: seasons,
     );

@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 
 import '../services/iptv_client.dart';
+import '../services/watch_progress_store.dart';
 import 'account_screen.dart';
 import 'categories_screen.dart';
 import 'favorites_screen.dart';
+import 'home_feed_screen.dart';
 import 'media_list_screen.dart';
 import 'search_screen.dart';
 import 'series_list_screen.dart';
@@ -21,6 +23,7 @@ class _NavDestination {
 }
 
 const _destinations = [
+  _NavDestination(icon: Icons.home_outlined, selectedIcon: Icons.home, label: 'Home'),
   _NavDestination(icon: Icons.live_tv_outlined, selectedIcon: Icons.live_tv, label: 'Live TV'),
   _NavDestination(icon: Icons.movie_outlined, selectedIcon: Icons.movie, label: 'Movies'),
   _NavDestination(
@@ -47,10 +50,21 @@ class _HomeScreenState extends State<HomeScreen> {
   int _index = 0;
 
   @override
+  void initState() {
+    super.initState();
+    // History belongs to the signed-in account, so load it for this one.
+    WatchProgressStore.instance.activate(watchScopeFor(widget.client.login));
+  }
+
+  @override
   Widget build(BuildContext context) {
     final client = widget.client;
 
     final tabs = [
+      HomeFeedScreen(
+        client: client,
+        onBrowse: (index) => setState(() => _index = index),
+      ),
       CategoriesScreen(
         title: 'Live TV',
         icon: Icons.live_tv,
