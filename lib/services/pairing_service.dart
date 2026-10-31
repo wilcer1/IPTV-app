@@ -6,12 +6,12 @@ import 'dart:typed_data';
 
 import 'package:cryptography/cryptography.dart';
 
-import '../models/xtream_credentials.dart';
+import '../models/login_config.dart';
 
-// Lets an already-signed-in device ("sender") hand its Xtream credentials to
-// a fresh one ("receiver", typically a TV) over the local network, so the
-// receiver never has to have its host/username/password typed in via a
-// remote control. Threat model: a trusted home LAN, not a hostile network —
+// Lets an already-signed-in device ("sender") hand its login (an Xtream
+// account or an M3U playlist URL) to a fresh one ("receiver", typically a TV)
+// over the local network, so the receiver never has to have it typed in via
+// a remote control. Threat model: a trusted home LAN, not a hostile network —
 // there is no backend, so an attacker who can already sniff and inject
 // traffic on the same LAN is out of scope.
 //
@@ -24,8 +24,8 @@ import '../models/xtream_credentials.dart';
 //   4. sender -> receiver: {"nonce": <base64 AES-GCM nonce>,
 //                           "cipherText": <base64>, "mac": <base64>}
 //      — the encrypted JSON-encoded credentials.
-//   5. receiver decrypts, tries to authenticate against the Xtream API, and
-//      replies {"status": "ok"} or {"status": "error", "message": ...}.
+//   5. receiver decrypts, hands the login back to its caller (which signs in
+//      with it), and replies {"status": "ok"} or {"status": "error", ...}.
 // Each line is newline-delimited JSON (TCP is a byte stream, not messages).
 //
 // The key for both the HMAC proof and the AES-GCM payload is
@@ -130,7 +130,7 @@ class PairingReceiver {
   Timer? _announceTimer;
   bool _disposed = false;
 
-  Future<XtreamCredentials> listen(
+  Future<LoginConfig> listen(
     String code, {
     Duration timeout = const Duration(minutes: 3),
   }) async {
@@ -149,7 +149,7 @@ class PairingReceiver {
     // doesn't.
     final targets = await _broadcastTargets();
 
-    final completer = Completer<XtreamCredentials>();
+    final completer = Completer<LoginConfig>();
 
     final subscription = _server!.listen((socket) {
       _handleConnection(socket, normalized, key).then((creds) {
@@ -185,7 +185,7 @@ class PairingReceiver {
     }
   }
 
-  Future<XtreamCredentials?> _handleConnection(
+  Future<LoginConfig?> _handleConnection(
     Socket socket,
     String normalizedCode,
     SecretKey key,
@@ -212,15 +212,11 @@ class PairingReceiver {
       );
       final plaintext = await AesGcm.with256bits().decrypt(secretBox, secretKey: key);
       final json = jsonDecode(utf8.decode(plaintext)) as Map<String, dynamic>;
-      final credentials = XtreamCredentials(
-        host: json['host'] as String,
-        username: json['username'] as String,
-        password: json['password'] as String,
-      );
+      final login = LoginConfig.fromJson(json);
 
       line.writeJson({'status': 'ok'});
       await line.close();
-      return credentials;
+      return login;
     } catch (e) {
       try {
         line.writeJson({'status': 'error', 'message': e.toString()});
@@ -268,7 +264,7 @@ class PairingReceiver {
 class PairingSender {
   Future<void> send(
     String code,
-    XtreamCredentials credentials, {
+    LoginConfig login, {
     Duration timeout = const Duration(seconds: 30),
   }) async {
     final key = await _deriveKey(code);
@@ -309,7 +305,7 @@ class PairingSender {
         if (!tried.add(candidateKey)) return;
 
         try {
-          await _attempt(datagram.address, port, normalized, key, credentials);
+          await _attempt(datagram.address, port, normalized, key, login);
           if (!completer.isCompleted) completer.complete();
         } catch (e) {
           tried.remove(candidateKey);
@@ -339,7 +335,7 @@ class PairingSender {
     int port,
     String normalizedCode,
     SecretKey key,
-    XtreamCredentials credentials,
+    LoginConfig login,
   ) async {
     final socket = await Socket.connect(address, port, timeout: const Duration(seconds: 5));
     final line = _LineSocket(socket);
@@ -354,11 +350,7 @@ class PairingSender {
         throw PairingException('The other device rejected the code.');
       }
 
-      final plaintext = utf8.encode(jsonEncode({
-        'host': credentials.host,
-        'username': credentials.username,
-        'password': credentials.password,
-      }));
+      final plaintext = utf8.encode(jsonEncode(login.toJson()));
       final secretBox = await AesGcm.with256bits().encrypt(plaintext, secretKey: key);
       line.writeJson({
         'nonce': base64Encode(secretBox.nonce),

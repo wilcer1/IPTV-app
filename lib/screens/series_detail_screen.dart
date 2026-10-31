@@ -2,11 +2,11 @@ import 'package:flutter/material.dart';
 
 import '../models/series_details.dart';
 import '../models/series_summary.dart';
-import '../services/xtream_api_client.dart';
+import '../services/iptv_client.dart';
 import '../widgets/media_tile.dart';
 
 class SeriesDetailScreen extends StatefulWidget {
-  final XtreamApiClient client;
+  final IptvClient client;
   final SeriesSummary series;
 
   const SeriesDetailScreen({

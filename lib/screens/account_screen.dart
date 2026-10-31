@@ -2,13 +2,13 @@ import 'package:flutter/material.dart';
 
 import '../models/account_info.dart';
 import '../services/credentials_store.dart';
+import '../services/iptv_client.dart';
 import '../services/theme_controller.dart';
-import '../services/xtream_api_client.dart';
 import 'login_screen.dart';
 import 'pair_send_screen.dart';
 
 class AccountScreen extends StatefulWidget {
-  final XtreamApiClient client;
+  final IptvClient client;
 
   const AccountScreen({super.key, required this.client});
 
@@ -17,7 +17,7 @@ class AccountScreen extends StatefulWidget {
 }
 
 class _AccountScreenState extends State<AccountScreen> {
-  late final Future<AccountInfo> _accountFuture;
+  late final Future<AccountInfo?> _accountFuture;
 
   @override
   void initState() {
@@ -36,7 +36,7 @@ class _AccountScreenState extends State<AccountScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final credentials = widget.client.credentials;
+    final client = widget.client;
     final colorScheme = Theme.of(context).colorScheme;
 
     return Scaffold(
@@ -61,12 +61,12 @@ class _AccountScreenState extends State<AccountScreen> {
                       ),
                       const SizedBox(height: 12),
                       Text(
-                        credentials.username,
+                        client.accountTitle,
                         style: Theme.of(context).textTheme.titleLarge
                             ?.copyWith(fontWeight: FontWeight.bold),
                       ),
                       Text(
-                        credentials.host,
+                        client.accountSubtitle,
                         style: Theme.of(context).textTheme.bodyMedium
                             ?.copyWith(color: colorScheme.onSurfaceVariant),
                       ),
@@ -75,7 +75,7 @@ class _AccountScreenState extends State<AccountScreen> {
                 ),
                 const SizedBox(height: 24),
                 Card(
-                  child: FutureBuilder<AccountInfo>(
+                  child: FutureBuilder<AccountInfo?>(
                     future: _accountFuture,
                     builder: (context, snapshot) {
                       if (snapshot.connectionState != ConnectionState.done) {
@@ -93,7 +93,14 @@ class _AccountScreenState extends State<AccountScreen> {
                         );
                       }
 
-                      final info = snapshot.data!;
+                      final info = snapshot.data;
+                      if (info == null) {
+                        return const ListTile(
+                          leading: Icon(Icons.info_outline),
+                          title: Text('Account details unavailable'),
+                          subtitle: Text('Plain M3U playlists have no subscription info.'),
+                        );
+                      }
                       return Column(
                         children: [
                           ListTile(
@@ -184,7 +191,7 @@ class _AccountScreenState extends State<AccountScreen> {
                     trailing: const Icon(Icons.chevron_right),
                     onTap: () => Navigator.of(context).push(
                       MaterialPageRoute(
-                        builder: (_) => PairSendScreen(credentials: credentials),
+                        builder: (_) => PairSendScreen(login: client.login),
                       ),
                     ),
                   ),

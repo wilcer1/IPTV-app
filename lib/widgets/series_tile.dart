@@ -2,11 +2,11 @@ import 'package:flutter/material.dart';
 
 import '../models/series_summary.dart';
 import '../screens/series_detail_screen.dart';
-import '../services/xtream_api_client.dart';
+import '../services/iptv_client.dart';
 import 'deferred_network_image.dart';
 
 class SeriesTile extends StatelessWidget {
-  final XtreamApiClient client;
+  final IptvClient client;
   final SeriesSummary series;
 
   const SeriesTile({super.key, required this.client, required this.series});

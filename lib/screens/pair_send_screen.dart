@@ -1,15 +1,15 @@
 import 'package:flutter/material.dart';
 
-import '../models/xtream_credentials.dart';
+import '../models/login_config.dart';
 import '../services/pairing_service.dart';
 import '../widgets/tv_text_field.dart';
 
-/// Shown on a device that's already signed in, to hand its Xtream
-/// credentials to a fresh device (typically a TV) over the local network.
+/// Shown on a device that's already signed in, to hand its login to a fresh
+/// device (typically a TV) over the local network.
 class PairSendScreen extends StatefulWidget {
-  final XtreamCredentials credentials;
+  final LoginConfig login;
 
-  const PairSendScreen({super.key, required this.credentials});
+  const PairSendScreen({super.key, required this.login});
 
   @override
   State<PairSendScreen> createState() => _PairSendScreenState();
@@ -40,7 +40,7 @@ class _PairSendScreenState extends State<PairSendScreen> {
     });
 
     try {
-      await PairingSender().send(code, widget.credentials);
+      await PairingSender().send(code, widget.login);
       if (!mounted) return;
       setState(() => _success = true);
     } catch (e) {

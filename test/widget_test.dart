@@ -17,4 +17,19 @@ void main() {
     expect(find.text('Sign in with your Xtream Codes account'), findsOneWidget);
     expect(find.text('Connect'), findsOneWidget);
   });
+
+  testWidgets('Login screen can switch to M3U playlist mode', (WidgetTester tester) async {
+    SharedPreferences.setMockInitialValues({});
+    FlutterSecureStoragePlatform.instance = TestFlutterSecureStoragePlatform({});
+
+    await tester.pumpWidget(const IptvApp());
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('M3U link'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Load your M3U playlist link'), findsOneWidget);
+    expect(find.text('Playlist link'), findsOneWidget);
+    expect(find.text('Username'), findsNothing);
+  });
 }

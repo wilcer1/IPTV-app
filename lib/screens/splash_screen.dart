@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 
+import '../services/client_factory.dart';
 import '../services/credentials_store.dart';
 import '../services/favorites_store.dart';
 import '../services/theme_controller.dart';
-import '../services/xtream_api_client.dart';
 import 'home_screen.dart';
 import 'login_screen.dart';
 
@@ -22,22 +22,22 @@ class _SplashScreenState extends State<SplashScreen> {
   }
 
   Future<void> _tryAutoLogin() async {
-    final credentialsFuture = CredentialsStore().load();
+    final loginFuture = CredentialsStore().load();
     final favoritesFuture = FavoritesStore.instance.ensureLoaded();
     final themeFuture = ThemeController.instance.ensureLoaded();
-    final credentials = await credentialsFuture;
+    final login = await loginFuture;
     await favoritesFuture;
     await themeFuture;
     if (!mounted) return;
 
-    if (credentials == null) {
+    if (login == null) {
       Navigator.of(context).pushReplacement(
         MaterialPageRoute(builder: (_) => const LoginScreen()),
       );
       return;
     }
 
-    final client = XtreamApiClient(credentials);
+    final client = createClient(login);
     try {
       await client.authenticate();
       if (!mounted) return;

@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 
+import '../services/client_factory.dart';
 import '../services/credentials_store.dart';
 import '../services/pairing_service.dart';
-import '../services/xtream_api_client.dart';
 import 'home_screen.dart';
 
 /// Shown on a device without stored credentials (typically a TV) so it can
@@ -36,14 +36,14 @@ class _PairReceiveScreenState extends State<PairReceiveScreen> {
 
     final receiver = PairingReceiver();
     _receiver = receiver;
-    receiver.listen(_code).then((credentials) async {
+    receiver.listen(_code).then((login) async {
       if (!mounted) return;
       setState(() => _connecting = true);
 
-      final client = XtreamApiClient(credentials);
+      final client = createClient(login);
       try {
         await client.authenticate();
-        await CredentialsStore().save(credentials);
+        await CredentialsStore().save(login);
         if (!mounted) return;
         Navigator.of(context).pushReplacement(
           MaterialPageRoute(builder: (_) => HomeScreen(client: client)),

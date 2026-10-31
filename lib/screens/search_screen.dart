@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import '../models/epg_program.dart';
 import '../models/media_item.dart';
 import '../models/series_summary.dart';
-import '../services/xtream_api_client.dart';
+import '../services/iptv_client.dart';
 import '../widgets/media_tile.dart';
 import '../widgets/series_tile.dart';
 import '../widgets/tv_text_field.dart';
@@ -24,7 +24,7 @@ typedef _SearchData = (
 );
 
 class SearchScreen extends StatefulWidget {
-  final XtreamApiClient client;
+  final IptvClient client;
   final String? initialQuery;
 
   const SearchScreen({super.key, required this.client, this.initialQuery});

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../services/xtream_api_client.dart';
+import '../services/iptv_client.dart';
 import 'account_screen.dart';
 import 'categories_screen.dart';
 import 'favorites_screen.dart';
@@ -35,7 +35,7 @@ const _wideBreakpoint = 640.0;
 const _extendedBreakpoint = 1000.0;
 
 class HomeScreen extends StatefulWidget {
-  final XtreamApiClient client;
+  final IptvClient client;
 
   const HomeScreen({super.key, required this.client});
 
