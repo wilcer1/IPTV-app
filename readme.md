@@ -14,7 +14,9 @@ A cross-platform IPTV client built with Flutter, targeting Android (phone and Go
 
 ## Download (Windows)
 
-Grab the latest `iptv-app-windows-x64.zip` from the [Releases](../../releases) page, extract it anywhere, and run `iptv_app.exe`. No installer needed — the zip contains everything required to run.
+Grab the latest `iptv-app-windows-x64.zip` from the [Releases](../../releases) page, right-click it and choose **Extract All**, then run `iptv_app.exe` from the extracted folder. No installer needed — the zip contains everything required to run.
+
+Keep the whole folder together and don't launch the exe from inside the zip preview: if Windows reports that `flutter_windows.dll` (or another DLL) can't be found, the exe is running without the files that sit next to it.
 
 ## Building from source
 
